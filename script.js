@@ -60,7 +60,7 @@ function onSearch() {
   renderToHTML(updatedCoins);
 }
 
-function onChangeGraphCoins() {
+function onChangeGraphCoins(dataPoints = []) {
   var options1 = {
     animationEnabled: true,
     title: {
@@ -71,48 +71,38 @@ function onChangeGraphCoins() {
         type: "column", //change it to line, area, bar, pie, etc
         legendText: "Try Resizing with the handle to the bottom right",
         showInLegend: true,
-        dataPoints: [
-          // {label: coinName, y:value}
-          { label: "asd", y: 10 },
-          { y: 6 },
-          { y: 14 },
-          { y: 12 },
-
-        ],
+        dataPoints: dataPoints
       },
     ],
   };
-
-  $("#resizable").resizable({
-    create: function (event, ui) {
-      //Create chart.
-      $("#chartContainer1").CanvasJSChart(options1);
-    },
-    resize: function (event, ui) {
-      //Update chart size according to its container size.
-      $("#chartContainer1").CanvasJSChart().render();
-    },
-  });
+  $("#chartContainer1").CanvasJSChart(options1);
 }
 //
-window.onload = function () {
-  onChangeGraphCoins();
-};
+
 
 function sliderToggle(index, ev) {
-  console.log(index, ev);
+  var dataPoints = [];
   var currency = coins[index];
-
+  
   if (favoritesCoins.length >= 5) return;
-  if (ev.srcElement.checked) {
-    favoritesCoins.push()
+  if (ev.target.checked) {
+    favoritesCoins.push(currency.symbol);
   } else {
+    favoritesCoins = favoritesCoins.filter(fCoin => fCoin !== currency.symbol);
   }
 
   $.get(
-    `https://min-api.cryptocompare.com/data/pricemulti?fsyms=&tsyms=USD`,
-    function (data) {
-      console.log("XXX", { data });
+    `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${favoritesCoins.join()}&tsyms=USD`,
+    function (response) {
+      for (const key in response) {
+        if (response.hasOwnProperty(key)) {
+          dataPoints.push({ label: key, y: response[key].USD });
+        }
+      }
+
+      onChangeGraphCoins(dataPoints);
     }
   );
+
+
 }
