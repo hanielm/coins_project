@@ -2,9 +2,12 @@ var coins = [];
 var showMorInfoMapped = {};
 var favoritesCoins = [];
 
+
 $.get("https://api.coingecko.com/api/v3/coins", function (data) {
   console.log("Coins", { data });
   coins = data;
+  $('.lds-ring').css('display', 'none');
+
   renderToHTML(coins);
 });
 
@@ -16,7 +19,10 @@ function renderToHTML(data) {
       ${`<div class="divSlider"><label class="switch"><input type="checkbox" 
       onchange="sliderToggle(${index},event)"><span class="slider round"></span></label></div>`} </div>
        <div class="name"> ${data[index].name} </div>
-       <div class="info"> <button type="button" onclick="getInfo(${index})" class="btn btn-primary">More info</button></div></div>`;
+       <div class="info"> <button type="button" onclick="getInfo(${index})" class="btn btn-primary">More info</button></div>
+       <div class="lds-hourglass"></div>
+       
+       </div>`;
   }
 
   $(".coins-box").html(strHtml);
@@ -24,12 +30,14 @@ function renderToHTML(data) {
 
 //get image and price
 function getInfo(index) {
+  $(`#id_${index} .lds-hourglass`).css('display', 'block');
   var id = coins[index].id;
   if (showMorInfoMapped[index]) {
     showMorInfoMapped[index] = false;
     $(`#id_${index} .moreInfo`).remove();
   } else {
     $.get(`https://api.coingecko.com/api/v3/coins/${id}`, function (data) {
+      $(`#id_${index} .lds-hourglass`).css('display', 'none');
       console.log({ data });
       $(`#id_${index}`).append(`<div class="moreInfo"> 
       <div><img src="${data.image.small}"></div>
@@ -44,13 +52,6 @@ function getInfo(index) {
   }
 }
 
-function test() {
-  getInfo();
-}
-
-function getMoreInfo(id) {
-  console.log("get more info", id);
-}
 
 function onSearch() {
   var input = document.getElementById("inputext").value;
@@ -83,9 +84,14 @@ function onChangeGraphCoins(dataPoints = []) {
 function sliderToggle(index, ev) {
   var dataPoints = [];
   var currency = coins[index];
-  
-  if (favoritesCoins.length >= 5) return;
-  if (ev.target.checked) {
+  var isCheked = ev.target.checked;
+
+  if (favoritesCoins.length >= 5 && isCheked) {
+    ev.target.checked = false;
+    return;
+  }
+
+  if (isCheked) {
     favoritesCoins.push(currency.symbol);
   } else {
     favoritesCoins = favoritesCoins.filter(fCoin => fCoin !== currency.symbol);
@@ -103,6 +109,11 @@ function sliderToggle(index, ev) {
       onChangeGraphCoins(dataPoints);
     }
   );
+}
 
 
+function onKeyDownHandler(event) {
+  if (event.keyCode === 13) { // on press ENTER in ketboard.
+    onSearch()
+  }
 }
