@@ -1,16 +1,8 @@
 var coins = [];
 var showMorInfoMapped = {};
 var favoritesCoins = [];
-var copyFavoritesCoins = [];
-
-var gCurrentCurrency;
-var gCurrentEl;
-
-//  $('.modal').addClass('in').css('display', 'block');
-
 
 $.get("https://api.coingecko.com/api/v3/coins", function (data) {
-  console.log("Coins", { data });
   coins = data;
   $('.lds-ring').css('display', 'none');
   renderToHTML(coins);
@@ -22,11 +14,10 @@ function renderToHTML(data) {
     strHtml += `<div class="box" id="id_${index}"> 
       <div class="symbol"> ${data[index].symbol} 
       ${`<div class="divSlider"><label class="switch"><input type="checkbox" 
-      onchange="sliderToggle(this,${index},event)"><span class="slider round"></span></label></div>`} </div>
+      onchange="sliderToggle(${index}, event)"><span class="slider round"></span></label></div>`} </div>
        <div class="name"> ${data[index].name} </div>
        <div class="info"> <button type="button" onclick="getInfo(${index})" class="btn btn-primary">More info</button></div>
        <div class="lds-hourglass"></div>
-       
        </div>`;
   }
 
@@ -105,32 +96,38 @@ function onChangeGraphCoins(dataPoints = []) {
 //
 
 
-function sliderToggle(el, index, el) {
+function sliderToggle(index, event) {
   var dataPoints = [];
   var currency = coins[index];
-  var isCheked = el.target.checked;
-
-  if (favoritesCoins.length >= 1 && isCheked) {
-    drawerModalCoins(favoritesCoins);
-    gCurrentCurrency = currency;
-    gCurrentEl = el;
+  var isCheked = event.target.checked;
+  if (favoritesCoins.length >= 2 && isCheked) {
+    event.target.checked = false;
+    alert('You have to remove one of the other coins')
     return;
   }
 
   if (isCheked) {
-    favoritesCoins.push({ symbol: currency.symbol, isRemoved: false });
+    favoritesCoins.push(currency.symbol);
+    sessionStorage.setItem('favoritesCoins', JSON.stringify(favoritesCoins));
   } else {
-    favoritesCoins = favoritesCoins.filter(fCoin => fCoin.symbol !== currency.symbol);
+    favoritesCoins = favoritesCoins.filter(fCoin => fCoin !== currency.symbol);
+    dataPoints = dataPoints.filter(dPoint => dPoint.label !== currency.symbol);
+    sessionStorage.setItem('dataPoints', JSON.stringify(dataPoints));
+    sessionStorage.setItem('favoritesCoins', JSON.stringify(favoritesCoins));
+
   }
 
-  var symbols = favoritesCoins.map(coin => coin.symbol);
-
+  if (!favoritesCoins.length) {
+    sessionStorage.setItem('dataPoints', JSON.stringify([]));
+    return;
+  }
   $.get(
-    `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${symbols.join()}&tsyms=USD`,
+    `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${favoritesCoins.join()}&tsyms=USD`,
     function (response) {
       for (const key in response) {
         if (response.hasOwnProperty(key)) {
           dataPoints.push({ label: key, y: response[key].USD });
+          sessionStorage.setItem('dataPoints', JSON.stringify(dataPoints));
         }
       }
       onChangeGraphCoins(dataPoints);
@@ -143,66 +140,4 @@ function onKeyDownHandler(event) {
   if (event.keyCode === 13) { // handle press ENTER in keyboard for search.
     onSearch()
   }
-}
-
-function drawerModalCoins(coins, newCurrency, ev) {
-  copyFavoritesCoins.length ? copyFavoritesCoins : copyFavoritesCoins = coins.map(coin => ({ ...coin }));
-  var strHtml = '';
-  for (let index = 0; index < copyFavoritesCoins.length; index++) {
-    var favoriteCoin = copyFavoritesCoins[index];
-
-    strHtml += `<div class="flex space-between">
-    <span class=${favoriteCoin.isRemoved ? 'line-throgh' : null}>${favoriteCoin.symbol}</span>
-    ${favoriteCoin.isRemoved ? `<button onclick='handleCoinsStatus(${index})'>Back to</button>` : `<button onclick="handleCoinsStatus(${index})">Remove</button>`}
-    </div>`
-  }
-
-  $('.modal').addClass('in').css('display', 'block');
-  console.log(strHtml);
-
-  $('.modal .modal-body').html(strHtml)
-
-
-}
-
-
-function handleCoinsStatus(index, ev) {
-  var requestedCoin = copyFavoritesCoins[index];
-  requestedCoin.isRemoved = !requestedCoin.isRemoved;
-  drawerModalCoins(copyFavoritesCoins)
-
-}
-
-function renderBodyModal() {
-
-}
-
-function onSubmit() {
-  favoritesCoins = [...copyFavoritesCoins];
-  favoritesCoins = favoritesCoins.filter(fCoin => !fCoin.isRemoved);
-  copyFavoritesCoins = [];
-  if (favoritesCoins.length <= 1) {
-    favoritesCoins.push({ symbol: gCurrentCurrency.symbol, isRemoved: false });
-    gCurrentEl.target.checked = true;
-    var symbols = document.querySelectorAll('.box .symbol');
-    symbols.forEach(symbol => {
-      var isExsist = favoritesCoins.find(f => f.symbol === symbol.innerText.trim())
-      debugger;
-      if (isExsist) {
-        symbol.querySelector('.switch input').checked  = false;
-      }
-      debugger;
-
-    })
-  } else {
-    gCurrentEl.target.checked = false;
-  }
-
-  gCurrentEl = null;
-  $('.modal').removeClass('in').css('display', 'none');
-}
-
-function onCloseModal() {
-  gCurrentEl.target.checked = false;
-  $('.modal').removeClass('in').css('display', 'none');
 }
