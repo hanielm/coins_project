@@ -254,4 +254,15 @@
       transform: rotate(1800deg);
     }
   }
-  
+  .about{
+    background-image: url(media/bitcoin.jpg);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 700px;
+    font-size: 40px;
+  }
+  h1{
+    font-size: 60px;
+    text-align: center;
+  }
